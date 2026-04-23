@@ -10,12 +10,12 @@ import (
 func TestGetPods(t *testing.T) {
 	t.Run("GetPods return arrays of pods with valid ns", func(t *testing.T) {
 		t.Parallel()
-		pods := pods.GetPodsFromNs("kube-system")
-		assert.NotEmpty(t, pods)
+		pods, _ := pods.GetPodsFromNs("kube-system")
+		assert.NotEmpty(t, pods.Items)
 	})
 	t.Run("GetPods return empty with invalid ns", func(t *testing.T) {
 		t.Parallel()
-		pods := pods.GetPodsFromNs("doestexistns")
-		assert.Empty(t, pods)
+		pods, _ := pods.GetPodsFromNs("doestexistns")
+		assert.Empty(t, pods.Items)
 	})
 }

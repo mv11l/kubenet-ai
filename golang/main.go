@@ -7,12 +7,13 @@ import (
 )
 
 func main() {
-	pods := pods.GetPodsFromNs("kube-system")
-
-	for _, pod := range pods {
-		name := pod.GetName()
-		test := pod.GetLabels()
-		namespace := pod.GetNamespace()
-		fmt.Printf("- [%s, %s] %s\n", namespace, test, name)
+	pods, err := pods.GetPodsFromNs("kube-system")
+	if err != nil {
+		fmt.Println(err)
+	}
+	for _, pod := range pods.Items {
+		name := pod.Name
+		namespace := pod.Namespace
+		fmt.Printf("- [%s, %s] \n", namespace, name)
 	}
 }

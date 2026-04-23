@@ -18,13 +18,13 @@ go_lint:
 	$(info ******************** running lint tools ********************)
 	cd golang && golangci-lint run -v ./...
 
-go_test: install_deps
+go_test:
 	$(info ******************** running tests ********************)
 	cd golang && go test -v ./...
 
 go_install_deps:
 	$(info ******************** downloading dependencies ********************)
-	cd golang && go get -v ./...
+	cd golang && go mod tidy
 
 go_clean:
 	cd golang && rm -rf bin/

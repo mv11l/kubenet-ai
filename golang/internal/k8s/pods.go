@@ -3,48 +3,50 @@ package pods
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-func GetPodsFromNs(ns string) []unstructured.Unstructured {
-	kubeconfig := filepath.Join(homeDir(), ".kube", "config")
+func GetPodsFromNs(ns string) (*v1.PodList, error) {
+	homeDir, err := homeDir()
+	if err != nil {
+		return nil, fmt.Errorf("failed get homeDir: %w", err)
+	}
+	kubeconfig := filepath.Join(homeDir, ".kube", "config")
+
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("failed to build kubeconfig: %w", err)
 	}
 
-	dynClient, err := dynamic.NewForConfig(config)
+	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("failed to set client: %w", err)
 	}
 
-	gvr := schema.GroupVersionResource{
-		Group:    "",
-		Version:  "v1",
-		Resource: "pods",
+	pods, err := clientset.CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{})
+	if errors.IsNotFound(err) {
+		return nil, fmt.Errorf("Pod not found: %w", err)
+	} else if statusError, isStatus := err.(*errors.StatusError); isStatus {
+		return nil, fmt.Errorf("Error getting pod %v\n", statusError.ErrStatus.Message)
+	} else if err != nil {
+		return nil, fmt.Errorf("Error getting pod %v\n", err.Error())
 	}
 
-	podList, err := dynClient.Resource(gvr).
-		Namespace(ns).
-		List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		panic(err)
-	}
-
-	return podList.Items
+	return pods, nil
 }
 
-func homeDir() string {
+func homeDir() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		panic("Could not determine home directory")
+		return "", err
 	}
-	return home
+	return home, nil
 }
